@@ -114,7 +114,7 @@ class os: AllStatic {
     _page_sizes[1] = 0; // sentinel
   }
 
-  static char*  pd_reserve_memory(size_t bytes);
+  static char*  pd_reserve_memory(size_t bytes, bool executable);
 
   static char*  pd_attempt_reserve_memory_at(char* addr, size_t bytes);
 
@@ -128,7 +128,7 @@ class os: AllStatic {
   static void   pd_commit_memory_or_exit(char* addr, size_t size,
                                          size_t alignment_hint,
                                          bool executable, const char* mesg);
-  static bool   pd_uncommit_memory(char* addr, size_t bytes);
+  static bool   pd_uncommit_memory(char* addr, size_t bytes, bool exec);
   static bool   pd_release_memory(char* addr, size_t bytes);
 
   static char*  pd_attempt_map_memory_to_file_at(char* addr, size_t bytes, int file_desc);
@@ -315,7 +315,7 @@ class os: AllStatic {
   static int    vm_allocation_granularity();
 
   // Reserves virtual memory.
-  static char*  reserve_memory(size_t bytes, MEMFLAGS flags = mtOther);
+  static char*  reserve_memory(size_t bytes, bool executable = false, MEMFLAGS flags = mtOther);
 
   // Reserves virtual memory that starts at an address that is aligned to 'alignment'.
   static char*  reserve_memory_aligned(size_t size, size_t alignment);
@@ -344,7 +344,7 @@ class os: AllStatic {
   static void   commit_memory_or_exit(char* addr, size_t size,
                                       size_t alignment_hint,
                                       bool executable, const char* mesg);
-  static bool   uncommit_memory(char* addr, size_t bytes);
+  static bool   uncommit_memory(char* addr, size_t bytes, bool exec);
   static bool   release_memory(char* addr, size_t bytes);
 
   // A diagnostic function to print memory mappings in the given range.
