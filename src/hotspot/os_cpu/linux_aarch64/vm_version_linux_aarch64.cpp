@@ -88,6 +88,30 @@ int VM_Version::set_and_get_current_sve_vector_lenght(int length) {
   return new_length;
 }
 
+#ifdef ASSERT
+#include "asm/macroAssembler.hpp"
+#include "asm/macroAssembler.inline.hpp"
+#include "memory/resourceArea.hpp"
+#include <runtime/icache.hpp>
+#include "utilities/formatBuffer.hpp"
+
+static uint64_t get_dczid_el0() {
+  const int code_size = 8;
+
+  ResourceMark rm;
+
+  CodeBuffer cb("compute_zva_length", code_size, 0);
+  MacroAssembler* a = new MacroAssembler(&cb);
+
+  uint64_t (*get_dczid)() = (uint64_t(*)())(void *)a->pc();
+  a->get_dczid_el0(c_rarg0);
+  a->ret(lr);
+
+  ICache::invalidate_range(cb.insts()->start(), code_size);
+  return get_dczid();
+}
+#endif
+
 void VM_Version::get_os_cpu_info() {
 
   uint64_t auxv = getauxval(AT_HWCAP);
@@ -128,6 +152,8 @@ void VM_Version::get_os_cpu_info() {
     "mrs %1, DCZID_EL0\n"
     : "=r"(ctr_el0), "=r"(dczid_el0)
   );
+
+  assert(get_dczid_el0() == dczid_el0, "should match");
 
   _icache_line_size = (1 << (ctr_el0 & 0x0f)) * 4;
   _dcache_line_size = (1 << ((ctr_el0 >> 16) & 0x0f)) * 4;
