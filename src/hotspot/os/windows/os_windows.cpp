@@ -2615,8 +2615,7 @@ LONG WINAPI topLevelExceptionFilter(struct _EXCEPTION_POINTERS* exceptionInfo) {
         if (thread->is_in_usable_stack(addr)) {
           addr = (address)((uintptr_t)addr &
                             (~((uintptr_t)os::vm_page_size() - (uintptr_t)1)));
-          os::commit_memory((char *)addr, thread->stack_base() - addr,
-                            !ExecMem);
+          os::commit_memory((char *)addr, thread->stack_base() - addr);
           return EXCEPTION_CONTINUE_EXECUTION;
         }
 #endif
@@ -3541,7 +3540,7 @@ bool os::pd_release_memory(char* addr, size_t bytes) {
 }
 
 bool os::pd_create_stack_guard_pages(char* addr, size_t size) {
-  return os::commit_memory(addr, size, !ExecMem);
+  return os::commit_memory(addr, size);
 }
 
 bool os::remove_stack_guard_pages(char* addr, size_t size) {
