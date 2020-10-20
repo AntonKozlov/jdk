@@ -1680,7 +1680,7 @@ char* os::attempt_reserve_memory_at(char* addr, size_t bytes) {
 }
 
 bool os::commit_memory(char* addr, size_t bytes) {
-  bool res = pd_commit_memory(addr, bytes);
+  bool res = pd_commit_memory(addr, bytes, !ExecMem);
   if (res) {
     MemTracker::record_virtual_memory_commit((address)addr, bytes, CALLER_PC);
   }
@@ -1688,7 +1688,7 @@ bool os::commit_memory(char* addr, size_t bytes) {
 }
 
 bool os::commit_memory(char* addr, size_t size, size_t alignment_hint) {
-  bool res = os::pd_commit_memory(addr, size, alignment_hint);
+  bool res = os::pd_commit_memory(addr, size, alignment_hint, !ExecMem);
   if (res) {
     MemTracker::record_virtual_memory_commit((address)addr, size, CALLER_PC);
   }
@@ -1696,7 +1696,7 @@ bool os::commit_memory(char* addr, size_t size, size_t alignment_hint) {
 }
 
 void os::commit_memory_or_exit(char* addr, size_t bytes, const char* mesg) {
-  pd_commit_memory_or_exit(addr, bytes, mesg);
+  pd_commit_memory_or_exit(addr, bytes, !ExecMem, mesg);
   MemTracker::record_virtual_memory_commit((address)addr, bytes, CALLER_PC);
 }
 
@@ -1835,12 +1835,21 @@ char* os::reserve_executable_memory(size_t bytes, MEMFLAGS flags) {
 }
 
 bool os::commit_executable_memory(char* addr, size_t bytes) {
-  return commit_memory(addr, bytes);
+  return pd_commit_memory(addr, bytes, ExecMem);
+}
+
+bool os::commit_executable_memory(char* addr, size_t size, size_t alignment_hint) {
+  return pd_commit_memory(addr, size, ExecMem, alignment_hint);
 }
 
 void os::commit_executable_memory_or_exit(char* addr, size_t bytes, const char* mesg) {
-  return commit_memory_or_exit(addr, bytes, mesg);
+  return pd_commit_memory_or_exit(addr, bytes, ExecMem, mesg);
 }
+void os::commit_executable_memory_or_exit(char* addr, size_t size, size_t alignment_hint,
+                               const char* mesg) {
+  return pd_commit_memory_or_exit(addr, size, alignment_hint, ExecMem, mesg);
+}
+
 
 bool os::uncommit_executable_memory(char* addr, size_t bytes) {
   return uncommit_memory(addr, bytes);

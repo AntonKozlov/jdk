@@ -829,10 +829,8 @@ static void pretouch_expanded_memory(void* start, void* end) {
 }
 
 static bool commit_expanded(char* start, size_t size, size_t alignment, bool pre_touch, bool executable) {
-  assert(!executable || alignment == 0, "cannot commit");
-
   bool committed = executable ?
-    os::commit_executable_memory(start, size) :
+    os::commit_executable_memory(start, size, alignment) :
     os::commit_memory(start, size, alignment);
   if (committed) {
     if (pre_touch || AlwaysPreTouch) {

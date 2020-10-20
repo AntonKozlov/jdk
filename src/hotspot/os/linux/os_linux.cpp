@@ -2833,16 +2833,17 @@ int os::Linux::commit_memory_impl(char* addr, size_t size, bool exec) {
   return err;
 }
 
-bool os::pd_commit_memory(char* addr, size_t size) {
-  return os::Linux::commit_memory_impl(addr, size, !ExecMem) == 0;
+bool os::pd_commit_memory(char* addr, size_t size, bool exec) {
+  return os::Linux::commit_memory_impl(addr, size, exec) == 0;
 }
 
-void os::pd_commit_memory_or_exit(char* addr, size_t size, const char* mesg) {
+void os::pd_commit_memory_or_exit(char* addr, size_t size, bool exec,
+                                  const char* mesg) {
   assert(mesg != NULL, "mesg must be specified");
-  int err = os::Linux::commit_memory_impl(addr, size, !ExecMem);
+  int err = os::Linux::commit_memory_impl(addr, size, exec);
   if (err != 0) {
     // the caller wants all commit errors to exit with the specified mesg:
-    warn_fail_commit_memory(addr, size, !ExecMem, err);
+    warn_fail_commit_memory(addr, size, exec, err);
     vm_exit_out_of_memory(size, OOM_MMAP_ERROR, "%s", mesg);
   }
 }
@@ -2875,18 +2876,19 @@ int os::Linux::commit_memory_impl(char* addr, size_t size,
   return err;
 }
 
-bool os::pd_commit_memory(char* addr, size_t size, size_t alignment_hint) {
-  return os::Linux::commit_memory_impl(addr, size, alignment_hint, !ExecMem) == 0;
+bool os::pd_commit_memory(char* addr, size_t size, size_t alignment_hint,
+                          bool exec) {
+  return os::Linux::commit_memory_impl(addr, size, alignment_hint, exec) == 0;
 }
 
 void os::pd_commit_memory_or_exit(char* addr, size_t size,
-                                  size_t alignment_hint,
+                                  size_t alignment_hint, bool exec,
                                   const char* mesg) {
   assert(mesg != NULL, "mesg must be specified");
-  int err = os::Linux::commit_memory_impl(addr, size, alignment_hint, !ExecMem);
+  int err = os::Linux::commit_memory_impl(addr, size, alignment_hint, exec);
   if (err != 0) {
     // the caller wants all commit errors to exit with the specified mesg:
-    warn_fail_commit_memory(addr, size, alignment_hint, !ExecMem, err);
+    warn_fail_commit_memory(addr, size, alignment_hint, exec, err);
     vm_exit_out_of_memory(size, OOM_MMAP_ERROR, "%s", mesg);
   }
 }
