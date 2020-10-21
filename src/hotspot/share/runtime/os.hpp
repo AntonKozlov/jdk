@@ -312,8 +312,47 @@ class os: AllStatic {
 
   static int    vm_allocation_granularity();
 
+  class Mapping {
+    char*  _addr;
+    size_t _size;
+    size_t _alignment;
+    bool   _exec;
+    int    _fd;
+    Mapping(char* addr, size_t size, size_t alignment, bool executable, int fd)
+      : _addr(addr), _size(size), _alignment(alignment), _exec(executable), _fd(fd) {}
+  public:
+
+    char* addr() const { return _addr; }
+
+    static Mapping reserve(size_t bytes, MEMFLAGS flags = mtOther);
+    static Mapping reserve_with_fd(size_t bytes, int file_desc);
+    static Mapping reserve_aligned(size_t bytes, size_t alignment, int file_desc);
+    static Mapping attempt_reserve_at(char* addr, size_t bytes, int file_desc);
+
+    bool commit(char* addr, size_t bytes);
+    // Same as commit() that either succeeds or calls
+    // vm_exit_out_of_memory() with the specified mesg.
+    void commit_or_exit(char* addr, size_t bytes, const char* mesg = NULL);
+    bool uncommit(char* addr, size_t bytes);
+    bool release(char* addr, size_t bytes);
+
+    // out-of-thin-air versions, when caller have not stored the mapping,
+    // but is certain how to recreate that
+    static Mapping reserved(char* addr, size_t bytes) {
+      return Mapping(addr, bytes, 0, !ExecMem, -1);
+    }
+    Mapping executable(bool executable) {
+      return Mapping(_addr, _size, _alignment, executable, _fd);
+    }
+    Mapping aligned(size_t alignment) {
+      return Mapping(_addr, _size, alignment, _exec, _fd);
+    }
+    Mapping with_fd(int file_desc) {
+      return Mapping(_addr, _size, _alignment, _exec, file_desc);
+    }
+  };
+
   // Reserves virtual memory.
-  // alignment_hint - currently only used by AIX
   static char*  reserve_memory(size_t bytes, MEMFLAGS flags = mtOther);
 
   // Reserves virtual memory.
