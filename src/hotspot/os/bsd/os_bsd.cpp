@@ -1732,16 +1732,32 @@ void os::pd_free_memory(char *addr, size_t bytes, size_t alignment_hint) {
 }
 
 char* os::pd_reserve_executable_memory(size_t bytes) {
+#ifdef __APPLE__
+  const int flags = MAP_JIT | MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS;
+  char* addr = (char*)::mmap(NULL, bytes, PROT_NONE, flags, -1, 0);
+  return addr == MAP_FAILED ? NULL : addr;
+#else
   return pd_reserve_memory(bytes);
+#endif
 }
 
 bool os::pd_commit_executable_memory(char* addr, size_t size, size_t alignment_hint) {
   // alignment_hint is ignored on this OS
+#ifdef __APPLE__
+  return 0 == ::mprotect(addr, size, PROT_READ | PROT_WRITE | PROT_EXEC);
+#else
   return pd_commit_memory_impl(addr, size, true);
+#endif
 }
 
 bool os::pd_uncommit_executable_memory(char* addr, size_t size) {
+#ifdef __APPLE__
+  // advise to free pages, but failure is not fatal
+  (void)::madvise(addr, size, MADV_FREE);
+  return 0 == ::mprotect(addr, size, PROT_NONE);
+#else
   return pd_uncommit_memory(addr, size);
+#endif
 }
 
 bool os::pd_release_executable_memory(char* addr, size_t size) {
