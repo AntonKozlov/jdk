@@ -1951,7 +1951,7 @@ bool os::pd_commit_memory(char* addr, size_t size, size_t alignment_hint) {
 }
 
 void os::pd_commit_memory_or_exit(char* addr, size_t size,
-                                  size_t alignment_hint
+                                  size_t alignment_hint,
                                   const char* mesg) {
   // Alignment_hint is ignored on this OS.
   pd_commit_memory_or_exit(addr, size, mesg);
