@@ -1676,7 +1676,7 @@ static void warn_fail_commit_memory(char* addr, size_t size, bool exec,
 //       All it does is to check if there are enough free pages
 //       left at the time of mmap(). This could be a potential
 //       problem.
-static bool pd_commit_memory_impl(char* addr, size_t size, bool exec)
+static bool pd_commit_memory_impl(char* addr, size_t size, bool exec) {
   int prot = exec ? PROT_READ|PROT_WRITE|PROT_EXEC : PROT_READ|PROT_WRITE;
 #ifdef __OpenBSD__
   // XXX: Work-around mmap/MAP_FIXED bug temporarily on OpenBSD
@@ -1701,13 +1701,14 @@ static bool pd_commit_memory_impl(char* addr, size_t size, bool exec)
 
 bool os::pd_commit_memory(char* addr, size_t size) {
   return pd_commit_memory_impl(addr, size, false);
+}
 
 bool os::pd_commit_memory(char* addr, size_t size, size_t alignment_hint) {
   // alignment_hint is ignored on this OS
   return pd_commit_memory(addr, size);
 }
 
-void os::pd_commit_memory_or_exit(char* addr, size_t size const char* mesg) {
+void os::pd_commit_memory_or_exit(char* addr, size_t size, const char* mesg) {
   assert(mesg != NULL, "mesg must be specified");
   if (!pd_commit_memory(addr, size)) {
     // add extra info in product mode for vm_exit_out_of_memory():
