@@ -2890,22 +2890,6 @@ void os::pd_commit_memory_or_exit(char* addr, size_t size, size_t alignment_hint
   }
 }
 
-char* os::pd_reserve_executable_memory(size_t bytes) {
-  return pd_reserve_memory(bytes);
-}
-
-bool os::pd_commit_executable_memory(char* addr, size_t size, size_t alignment_hint) {
-  return os::Linux::commit_memory_impl(addr, size, alignment_hint, true) == 0;
-}
-
-bool os::pd_uncommit_executable_memory(char* addr, size_t size) {
-  return pd_uncommit_memory(addr, size);
-}
-
-bool os::pd_release_executable_memory(char* addr, size_t size) {
-  return pd_release_memory(addr, size);
-}
-
 void os::pd_realign_memory(char *addr, size_t bytes, size_t alignment_hint) {
   if (UseTransparentHugePages && alignment_hint > (size_t)vm_page_size()) {
     // We don't check the return value: madvise(MADV_HUGEPAGE) may not
@@ -2924,6 +2908,23 @@ void os::pd_free_memory(char *addr, size_t bytes, size_t alignment_hint) {
     commit_memory(addr, bytes, alignment_hint);
   }
 }
+
+char* os::pd_reserve_executable_memory(size_t bytes) {
+  return pd_reserve_memory(bytes);
+}
+
+bool os::pd_commit_executable_memory(char* addr, size_t size, size_t alignment_hint) {
+  return os::Linux::commit_memory_impl(addr, size, alignment_hint, true) == 0;
+}
+
+bool os::pd_uncommit_executable_memory(char* addr, size_t size) {
+  return pd_uncommit_memory(addr, size);
+}
+
+bool os::pd_release_executable_memory(char* addr, size_t size) {
+  return pd_release_memory(addr, size);
+}
+
 
 void os::numa_make_global(char *addr, size_t bytes) {
   Linux::numa_interleave_memory(addr, bytes);
