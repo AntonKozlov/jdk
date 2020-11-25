@@ -1676,7 +1676,7 @@ static void warn_fail_commit_memory(char* addr, size_t size, bool exec,
 //       All it does is to check if there are enough free pages
 //       left at the time of mmap(). This could be a potential
 //       problem.
-static bool pd_commit_memory_impl(char* addr, size_t size, bool exec)
+static bool pd_commit_memory_impl(char* addr, size_t size, bool exec) {
   int prot = exec ? PROT_READ|PROT_WRITE|PROT_EXEC : PROT_READ|PROT_WRITE;
 #ifdef __OpenBSD__
   // XXX: Work-around mmap/MAP_FIXED bug temporarily on OpenBSD
@@ -1701,13 +1701,14 @@ static bool pd_commit_memory_impl(char* addr, size_t size, bool exec)
 
 bool os::pd_commit_memory(char* addr, size_t size) {
   return pd_commit_memory_impl(addr, size, false);
+}
 
 bool os::pd_commit_memory(char* addr, size_t size, size_t alignment_hint) {
   // alignment_hint is ignored on this OS
   return pd_commit_memory(addr, size);
 }
 
-void os::pd_commit_memory_or_exit(char* addr, size_t size const char* mesg) {
+void os::pd_commit_memory_or_exit(char* addr, size_t size, const char* mesg) {
   assert(mesg != NULL, "mesg must be specified");
   if (!pd_commit_memory(addr, size)) {
     // add extra info in product mode for vm_exit_out_of_memory():
@@ -1731,16 +1732,32 @@ void os::pd_free_memory(char *addr, size_t bytes, size_t alignment_hint) {
 }
 
 char* os::pd_reserve_executable_memory(size_t bytes) {
+#ifdef __APPLE__
+  const int flags = MAP_JIT | MAP_PRIVATE | MAP_NORESERVE | MAP_ANONYMOUS;
+  char* addr = (char*)::mmap(NULL, bytes, PROT_NONE, flags, -1, 0);
+  return addr == MAP_FAILED ? NULL : addr;
+#else
   return pd_reserve_memory(bytes);
+#endif
 }
 
 bool os::pd_commit_executable_memory(char* addr, size_t size, size_t alignment_hint) {
   // alignment_hint is ignored on this OS
+#ifdef __APPLE__
+  return 0 == ::mprotect(addr, size, PROT_READ | PROT_WRITE | PROT_EXEC);
+#else
   return pd_commit_memory_impl(addr, size, true);
+#endif
 }
 
 bool os::pd_uncommit_executable_memory(char* addr, size_t size) {
+#ifdef __APPLE__
+  // advise to free pages, but failure is not fatal
+  (void)::madvise(addr, size, MADV_FREE);
+  return 0 == ::mprotect(addr, size, PROT_NONE);
+#else
   return pd_uncommit_memory(addr, size);
+#endif
 }
 
 bool os::pd_release_executable_memory(char* addr, size_t size) {
