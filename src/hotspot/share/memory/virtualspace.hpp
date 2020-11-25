@@ -52,6 +52,13 @@ class ReservedSpace {
                   char* requested_address,
                   bool executable);
 
+  // Helper methods
+  bool failed_to_reserve_as_requested(char* base, char* requested_address, size_t size);
+  char* attempt_map_or_reserve_memory_at(char* base, size_t size);
+  char* map_or_reserve_memory(size_t size);
+  char* map_or_reserve_memory_aligned(size_t size, size_t alignment);
+  void unmap_or_release_memory(char* base, size_t size);
+
  public:
   // Constructor
   ReservedSpace();

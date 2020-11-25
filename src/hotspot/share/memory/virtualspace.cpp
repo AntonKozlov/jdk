@@ -81,43 +81,55 @@ ReservedSpace::ReservedSpace(char* base, size_t size, size_t alignment,
 }
 
 // Helper method
-static char* attempt_map_or_reserve_memory_at(char* base, size_t size, int fd) {
-  if (fd != -1) {
-    return os::attempt_map_memory_to_file_at(base, size, fd);
+char* ReservedSpace::attempt_map_or_reserve_memory_at(char* base, size_t size) {
+  guarantee(!_executable, "unsupported");
+  if (_fd_for_heap != -1) {
+    return os::attempt_map_memory_to_file_at(base, size, _fd_for_heap);
   }
   return os::attempt_reserve_memory_at(base, size);
 }
 
 // Helper method
-static char* map_or_reserve_memory(size_t size, int fd) {
-  if (fd != -1) {
-    return os::map_memory_to_file(size, fd);
+char* ReservedSpace::map_or_reserve_memory(size_t size) {
+  if (_executable) {
+    guarantee(_fd_for_heap == -1, "unsupported");
+    return os::reserve_executable_memory(size);
+  }
+  if (_fd_for_heap != -1) {
+    return os::map_memory_to_file(size, _fd_for_heap);
   }
   return os::reserve_memory(size);
 }
 
 // Helper method
-static char* map_or_reserve_memory_aligned(size_t size, size_t alignment, int fd) {
-  if (fd != -1) {
-    return os::map_memory_to_file_aligned(size, alignment, fd);
+char* ReservedSpace::map_or_reserve_memory_aligned(size_t size, size_t alignment) {
+  guarantee(!_executable, "unsupported");
+  if (_fd_for_heap != -1) {
+    return os::map_memory_to_file_aligned(size, alignment, _fd_for_heap);
   }
   return os::reserve_memory_aligned(size, alignment);
 }
 
 // Helper method
-static void unmap_or_release_memory(char* base, size_t size, bool is_file_mapped) {
-  if (is_file_mapped) {
+void ReservedSpace::unmap_or_release_memory(char* base, size_t size) {
+  if (_fd_for_heap != -1) {
     if (!os::unmap_memory(base, size)) {
       fatal("os::unmap_memory failed");
     }
-  } else if (!os::release_memory(base, size)) {
-    fatal("os::release_memory failed");
+  } else if (_executable) {
+    if (os::release_executable_memory(base, size)) {
+      fatal("os::release_executable_memory failed");
+    }
+  } else {
+    if (!os::release_memory(base, size)) {
+      fatal("os::release_memory failed");
+    }
   }
 }
 
 // Helper method.
-static bool failed_to_reserve_as_requested(char* base, char* requested_address,
-                                           const size_t size, bool special, bool is_file_mapped = false)
+bool ReservedSpace::failed_to_reserve_as_requested(char* base, char* requested_address,
+                                           const size_t size)
 {
   if (base == requested_address || requested_address == NULL)
     return false; // did not fail
@@ -128,12 +140,12 @@ static bool failed_to_reserve_as_requested(char* base, char* requested_address,
     assert(UseCompressedOops, "currently requested address used only for compressed oops");
     log_debug(gc, heap, coops)("Reserved memory not at requested address: " PTR_FORMAT " vs " PTR_FORMAT, p2i(base), p2i(requested_address));
     // OS ignored requested address. Try different address.
-    if (special) {
+    if (_special) {
       if (!os::release_memory_special(base, size)) {
         fatal("os::release_memory_special failed");
       }
     } else {
-      unmap_or_release_memory(base, size, is_file_mapped);
+      unmap_or_release_memory(base, size);
     }
   }
   return true;
@@ -183,7 +195,7 @@ void ReservedSpace::initialize(size_t size, size_t alignment, bool large,
     base = os::reserve_memory_special(size, alignment, requested_address, executable);
 
     if (base != NULL) {
-      if (failed_to_reserve_as_requested(base, requested_address, size, true)) {
+      if (failed_to_reserve_as_requested(base, requested_address, size)) {
         // OS ignored requested address. Try different address.
         return;
       }
@@ -212,13 +224,13 @@ void ReservedSpace::initialize(size_t size, size_t alignment, bool large,
     // important.  If available space is not detected, return NULL.
 
     if (requested_address != 0) {
-      base = attempt_map_or_reserve_memory_at(requested_address, size, _fd_for_heap);
-      if (failed_to_reserve_as_requested(base, requested_address, size, false, _fd_for_heap != -1)) {
+      base = attempt_map_or_reserve_memory_at(requested_address, size);
+      if (failed_to_reserve_as_requested(base, requested_address, size)) {
         // OS ignored requested address. Try different address.
         base = NULL;
       }
     } else {
-      base = map_or_reserve_memory(size, _fd_for_heap);
+      base = map_or_reserve_memory(size);
     }
 
     if (base == NULL) return;
@@ -226,14 +238,14 @@ void ReservedSpace::initialize(size_t size, size_t alignment, bool large,
     // Check alignment constraints
     if ((((size_t)base) & (alignment - 1)) != 0) {
       // Base not aligned, retry
-      unmap_or_release_memory(base, size, _fd_for_heap != -1 /*is_file_mapped*/);
+      unmap_or_release_memory(base, size);
 
       // Make sure that size is aligned
       size = align_up(size, alignment);
-      base = map_or_reserve_memory_aligned(size, alignment, _fd_for_heap);
+      base = map_or_reserve_memory_aligned(size, alignment);
 
       if (requested_address != 0 &&
-          failed_to_reserve_as_requested(base, requested_address, size, false, _fd_for_heap != -1)) {
+          failed_to_reserve_as_requested(base, requested_address, size)) {
         // As a result of the alignment constraints, the allocated base differs
         // from the requested address. Return back to the caller who can
         // take remedial action (like try again without a requested address).
@@ -396,13 +408,13 @@ void ReservedHeapSpace::try_reserve_heap(size_t size,
     }
 
     if (requested_address != 0) {
-      base = attempt_map_or_reserve_memory_at(requested_address, size, _fd_for_heap);
+      base = attempt_map_or_reserve_memory_at(requested_address, size);
     } else {
       // Optimistically assume that the OSes returns an aligned base pointer.
       // When reserving a large address range, most OSes seem to align to at
       // least 64K.
       // If the returned memory is not aligned we will release and retry.
-      base = map_or_reserve_memory(size, _fd_for_heap);
+      base = map_or_reserve_memory(size);
     }
   }
   if (base == NULL) { return; }
