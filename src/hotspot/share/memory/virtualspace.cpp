@@ -82,7 +82,7 @@ ReservedSpace::ReservedSpace(char* base, size_t size, size_t alignment,
 
 // Helper method
 char* ReservedSpace::attempt_map_or_reserve_memory_at(char* base, size_t size) {
-  guarantee(!_executable, "unsupported");
+  assert(!_executable, "unsupported");
   if (_fd_for_heap != -1) {
     return os::attempt_map_memory_to_file_at(base, size, _fd_for_heap);
   }
@@ -92,7 +92,7 @@ char* ReservedSpace::attempt_map_or_reserve_memory_at(char* base, size_t size) {
 // Helper method
 char* ReservedSpace::map_or_reserve_memory(size_t size) {
   if (_executable) {
-    guarantee(_fd_for_heap == -1, "unsupported");
+    assert(_fd_for_heap == -1, "unsupported");
     return os::reserve_executable_memory(size);
   }
   if (_fd_for_heap != -1) {
@@ -103,7 +103,7 @@ char* ReservedSpace::map_or_reserve_memory(size_t size) {
 
 // Helper method
 char* ReservedSpace::map_or_reserve_memory_aligned(size_t size, size_t alignment) {
-  guarantee(!_executable, "unsupported");
+  assert(!_executable, "unsupported");
   if (_fd_for_heap != -1) {
     return os::map_memory_to_file_aligned(size, alignment, _fd_for_heap);
   }
@@ -176,12 +176,13 @@ void ReservedSpace::initialize(size_t size, size_t alignment, bool large,
 
   // If OS doesn't support demand paging for large page memory, we need
   // to use reserve_memory_special() to reserve and pin the entire region.
+  _special = large && !os::can_commit_large_page_memory();
+
   // If there is a backing file directory for this space then whether
   // large pages are allocated is up to the filesystem of the backing file.
   // So we ignore the UseLargePages flag in this case.
-  bool special = large && !os::can_commit_large_page_memory();
-  if (special && _fd_for_heap != -1) {
-    special = false;
+  if (_special && _fd_for_heap != -1) {
+    _special = false;
     if (UseLargePages && (!FLAG_IS_DEFAULT(UseLargePages) ||
       !FLAG_IS_DEFAULT(LargePageSizeInBytes))) {
       log_debug(gc, heap)("Ignoring UseLargePages since large page support is up to the file system of the backing file for Java heap");
@@ -190,7 +191,7 @@ void ReservedSpace::initialize(size_t size, size_t alignment, bool large,
 
   char* base = NULL;
 
-  if (special) {
+  if (_special) {
 
     base = os::reserve_memory_special(size, alignment, requested_address, executable);
 
@@ -204,8 +205,8 @@ void ReservedSpace::initialize(size_t size, size_t alignment, bool large,
              "Large pages returned a non-aligned address, base: "
              PTR_FORMAT " alignment: " SIZE_FORMAT_HEX,
              p2i(base), alignment);
-      _special = true;
     } else {
+      _special = false;
       // failed; try to reserve regular memory below
       if (UseLargePages && (!FLAG_IS_DEFAULT(UseLargePages) ||
                             !FLAG_IS_DEFAULT(LargePageSizeInBytes))) {
