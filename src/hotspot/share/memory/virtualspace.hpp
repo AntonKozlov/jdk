@@ -37,10 +37,8 @@ class ReservedSpace {
  protected:
   char*  _base;
   size_t _size;
-  size_t _noaccess_prefix;
   size_t _alignment;
   bool   _special;
-  int    _fd_for_heap;
  private:
   bool   _executable;
 
@@ -52,12 +50,12 @@ class ReservedSpace {
                   char* requested_address,
                   bool executable);
 
-  // Helper methods
   bool failed_to_reserve_as_requested(char* base, char* requested_address, size_t size);
-  char* attempt_map_or_reserve_memory_at(char* base, size_t size);
-  char* map_or_reserve_memory(size_t size);
-  char* map_or_reserve_memory_aligned(size_t size, size_t alignment);
-  void unmap_or_release_memory(char* base, size_t size);
+
+  virtual char* attempt_reserve_memory_at(char* base, size_t size);
+  virtual char* reserve_memory(size_t size);
+  virtual char* reserve_memory_aligned(size_t size, size_t alignment);
+  virtual void  release_memory(char* base, size_t size);
 
  public:
   // Constructor
@@ -77,9 +75,8 @@ class ReservedSpace {
   size_t alignment()       const { return _alignment; }
   bool   special()         const { return _special;   }
   bool   executable()      const { return _executable;   }
-  size_t noaccess_prefix() const { return _noaccess_prefix;   }
   bool is_reserved()       const { return _base != NULL; }
-  void release();
+  virtual void release();
 
   // Splitting
   // This splits the space into two spaces, the first part of which will be returned.
@@ -117,8 +114,16 @@ ReservedSpace ReservedSpace::last_part(size_t partition_size)
 }
 
 // Class encapsulating behavior specific of memory space reserved for Java heap.
-class ReservedHeapSpace : public ReservedSpace {
- private:
+class ReservedHeapSpace: public ReservedSpace {
+  int  _fd_for_heap;
+  size_t _noaccess_prefix;
+
+  virtual char* attempt_reserve_memory_at(char* base, size_t size);
+  virtual char* reserve_memory(size_t size);
+  virtual char* reserve_memory_aligned(size_t size, size_t alignment);
+  virtual void  release_memory(char* base, size_t size);
+  virtual void  release();
+
   void try_reserve_heap(size_t size, size_t alignment, bool large,
                         char *requested_address);
   void try_reserve_range(char *highest_start, char *lowest_start,
@@ -127,14 +132,23 @@ class ReservedHeapSpace : public ReservedSpace {
   void initialize_compressed_heap(const size_t size, size_t alignment, bool large);
   // Create protection page at the beginning of the space.
   void establish_noaccess_prefix();
+
+ protected:
+  void initialize(size_t size, size_t alignment, bool large,
+                               char* requested_address);
+
+
  public:
+  size_t noaccess_prefix() const { return _noaccess_prefix;   }
+
+  char *compressed_oop_base() const { return base() - _noaccess_prefix; }
+
   // Constructor. Tries to find a heap that is good for compressed oops.
   // heap_allocation_directory is the path to the backing memory for Java heap. When set, Java heap will be allocated
   // on the device which is managed by the file system where the directory resides.
   ReservedHeapSpace(size_t size, size_t forced_base_alignment, bool large, const char* heap_allocation_directory = NULL);
   // Returns the base to be used for compression, i.e. so that null can be
   // encoded safely and implicit null checks can work.
-  char *compressed_oop_base() const { return _base - _noaccess_prefix; }
   MemRegion region() const;
 };
 

@@ -192,7 +192,7 @@ $(LIBRARIES): $(TARGET_DIR) $(TARGET_DIR)/Makefile
 	if [ ! -f $@ ]; then cd $(TARGET_DIR); make all-opcodes; fi
 
 $(TARGET_DIR)/Makefile:
-	(cd $(TARGET_DIR); CC=$(CC) CFLAGS="$(CFLAGS)" AR="$(AR)" $(BINUTILSDIR)/configure --disable-nls $(CONFIGURE_ARGS))
+	(cd $(TARGET_DIR); CC=$(CC) CFLAGS="$(CFLAGS)" AR="$(AR)" $(BINUTILSDIR)/configure --disable-nls $(CONFIGURE_ARGS) --disable-werror)
 
 $(TARGET): $(SOURCE) $(LIBS) $(LIBRARIES) $(TARGET_DIR)
 	$(CC) $(OUTFLAGS) $(CPPFLAGS) $(CFLAGS) $(SOURCE) $(DLDFLAGS) $(LIBRARIES)
