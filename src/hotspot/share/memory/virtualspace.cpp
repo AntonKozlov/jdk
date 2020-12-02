@@ -1021,7 +1021,7 @@ void VirtualSpace::shrink_by(size_t size) {
     assert(middle_high_boundary() <= aligned_upper_new_high &&
            aligned_upper_new_high + upper_needs <= upper_high_boundary(),
            "must not shrink beyond region");
-    if (!uncommit_shrinked(aligned_upper_new_high, upper_needs)) {
+    if (!uncommit_shrinked(aligned_upper_new_high, upper_needs, _executable)) {
       return;
     } else {
       _upper_high -= upper_needs;
@@ -1031,7 +1031,7 @@ void VirtualSpace::shrink_by(size_t size) {
     assert(lower_high_boundary() <= aligned_middle_new_high &&
            aligned_middle_new_high + middle_needs <= middle_high_boundary(),
            "must not shrink beyond region");
-    if (!uncommit_shrinked(aligned_middle_new_high, middle_needs)) {
+    if (!uncommit_shrinked(aligned_middle_new_high, middle_needs, _executable)) {
       return;
     } else {
       _middle_high -= middle_needs;
@@ -1041,7 +1041,7 @@ void VirtualSpace::shrink_by(size_t size) {
     assert(low_boundary() <= aligned_lower_new_high &&
            aligned_lower_new_high + lower_needs <= lower_high_boundary(),
            "must not shrink beyond region");
-    if (!uncommit_shrinked(aligned_lower_new_high, lower_needs)) {
+    if (!uncommit_shrinked(aligned_lower_new_high, lower_needs, _executable)) {
       return;
     } else {
       _lower_high -= lower_needs;
