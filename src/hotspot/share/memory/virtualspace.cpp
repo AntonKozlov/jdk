@@ -252,6 +252,10 @@ void ReservedSpace::initialize(size_t size, size_t alignment, bool large,
   _base = base;
   _size = size;
   _alignment = alignment;
+  // If heap is reserved with a backing file, the entire space has been committed. So set the _special flag to true
+  if (_fd_for_heap != -1) {
+    _special = true;
+  }
 }
 
 ReservedSpace ReservedSpace::first_part(size_t partition_size, size_t alignment, bool split) {
@@ -409,6 +413,11 @@ void ReservedHeapSpace::try_reserve_heap(size_t size,
   _base = base;
   _size = size;
   _alignment = alignment;
+
+  // If heap is reserved with a backing file, the entire space has been committed. So set the _special flag to true
+  if (_fd_for_heap != -1) {
+    _special = true;
+  }
 
   // Check alignment constraints
   if ((((size_t)base) & (alignment - 1)) != 0) {
@@ -675,7 +684,7 @@ VirtualSpace::VirtualSpace() {
   _lower_alignment        = 0;
   _middle_alignment       = 0;
   _upper_alignment        = 0;
-  _pinned                 = false;
+  _special                = false;
   _executable             = false;
 }
 
@@ -696,7 +705,7 @@ bool VirtualSpace::initialize_with_granularity(ReservedSpace rs, size_t committe
   _low = low_boundary();
   _high = low();
 
-  _pinned = rs.pinned();
+  _special = rs.special();
   _executable = rs.executable();
 
   // When a VirtualSpace begins life at a large size, make all future expansion
@@ -754,7 +763,7 @@ void VirtualSpace::release() {
   _lower_alignment        = 0;
   _middle_alignment       = 0;
   _upper_alignment        = 0;
-  _pinned                 = false;
+  _special                = false;
   _executable             = false;
 }
 
@@ -775,7 +784,7 @@ size_t VirtualSpace::uncommitted_size()  const {
 
 size_t VirtualSpace::actual_committed_size() const {
   // Special VirtualSpaces commit all reserved space up front.
-  if (pinned()) {
+  if (special()) {
     return reserved_size();
   }
 
@@ -857,7 +866,7 @@ bool VirtualSpace::expand_by(size_t bytes, bool pre_touch) {
     return false;
   }
 
-  if (pinned()) {
+  if (special()) {
     // don't commit memory if the entire space is pinned in memory
     _high += bytes;
     return true;
@@ -947,7 +956,7 @@ void VirtualSpace::shrink_by(size_t size) {
   if (committed_size() < size)
     fatal("Cannot shrink virtual space to negative size");
 
-  if (pinned()) {
+  if (special()) {
     // don't uncommit if the entire space is pinned in memory
     _high -= size;
     return;
@@ -1055,7 +1064,7 @@ void VirtualSpace::check_for_contiguity() {
 
 void VirtualSpace::print_on(outputStream* out) {
   out->print   ("Virtual space:");
-  if (pinned()) out->print(" (pinned in memory)");
+  if (special()) out->print(" (pinned in memory)");
   out->cr();
   out->print_cr(" - committed: " SIZE_FORMAT, committed_size());
   out->print_cr(" - reserved:  " SIZE_FORMAT, reserved_size());
@@ -1299,7 +1308,7 @@ class TestVirtualSpace : AllStatic {
 
     vs.expand_by(commit_size, false);
 
-    if (vs.pinned()) {
+    if (vs.special()) {
       assert_equals(vs.actual_committed_size(), reserve_size_aligned);
     } else {
       assert_ge(vs.actual_committed_size(), commit_size);

@@ -80,7 +80,6 @@ class ReservedSpace {
   bool   executable()      const { return _executable;   }
   size_t noaccess_prefix() const { return _noaccess_prefix;   }
   bool is_reserved()       const { return _base != NULL; }
-  bool   pinned()          const { return _special || _fd_for_heap != -1; }
   void release();
 
   // Splitting
@@ -162,7 +161,7 @@ class VirtualSpace {
 
   // The entire space has been committed and pinned in memory, no
   // os::commit_memory() or os::uncommit_memory().
-  bool _pinned;
+  bool _special;
 
   // Need to know if commit should be executable.
   bool   _executable;
@@ -215,7 +214,7 @@ class VirtualSpace {
   void set_high(char *p)          { _high = p; }
 #endif
 
-  bool pinned() const { return _pinned; }
+  bool special() const { return _special; }
 
  public:
   // Initialization
