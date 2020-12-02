@@ -51,7 +51,7 @@ class JfrVirtualMemorySegment : public JfrCHeapObj {
   const u1* reserved_high() const { return (const u1*)_virtual_memory.high_boundary(); }
   size_t reserved_words() const  { return _virtual_memory.reserved_size() / BytesPerWord; }
   size_t committed_words() const { return _virtual_memory.actual_committed_size() / BytesPerWord; }
-  bool is_pre_committed() const { return !_virtual_memory.should_commit(); }
+  bool is_pre_committed() const { return _virtual_memory.pinned(); }
   VirtualSpace& virtual_space() { return _virtual_memory; }
 
   JfrVirtualMemorySegment();

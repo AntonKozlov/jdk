@@ -249,7 +249,7 @@ namespace {
     ASSERT_TRUE(initialize_virtual_space(vs, reserved, mode)) << "Failed to initialize VirtualSpace";
     vs.expand_by(commit_size, false);
 
-    if (vs.should_commit()) {
+    if (vs.pinned()) {
       EXPECT_EQ(reserve_size_aligned, vs.actual_committed_size());
     } else {
       EXPECT_GE(vs.actual_committed_size(), commit_size);

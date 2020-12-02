@@ -675,7 +675,7 @@ VirtualSpace::VirtualSpace() {
   _lower_alignment        = 0;
   _middle_alignment       = 0;
   _upper_alignment        = 0;
-  _should_commit          = false;
+  _pinned                 = false;
   _executable             = false;
 }
 
@@ -696,7 +696,7 @@ bool VirtualSpace::initialize_with_granularity(ReservedSpace rs, size_t committe
   _low = low_boundary();
   _high = low();
 
-  _should_commit = rs.should_commit();
+  _pinned = rs.pinned();
   _executable = rs.executable();
 
   // When a VirtualSpace begins life at a large size, make all future expansion
@@ -754,7 +754,7 @@ void VirtualSpace::release() {
   _lower_alignment        = 0;
   _middle_alignment       = 0;
   _upper_alignment        = 0;
-  _should_commit          = false;
+  _pinned                 = false;
   _executable             = false;
 }
 
@@ -775,7 +775,7 @@ size_t VirtualSpace::uncommitted_size()  const {
 
 size_t VirtualSpace::actual_committed_size() const {
   // Special VirtualSpaces commit all reserved space up front.
-  if (!should_commit()) {
+  if (pinned()) {
     return reserved_size();
   }
 
@@ -857,7 +857,7 @@ bool VirtualSpace::expand_by(size_t bytes, bool pre_touch) {
     return false;
   }
 
-  if (!should_commit()) {
+  if (pinned()) {
     // don't commit memory if the entire space is pinned in memory
     _high += bytes;
     return true;
@@ -947,7 +947,7 @@ void VirtualSpace::shrink_by(size_t size) {
   if (committed_size() < size)
     fatal("Cannot shrink virtual space to negative size");
 
-  if (!should_commit()) {
+  if (pinned()) {
     // don't uncommit if the entire space is pinned in memory
     _high -= size;
     return;
@@ -1055,7 +1055,7 @@ void VirtualSpace::check_for_contiguity() {
 
 void VirtualSpace::print_on(outputStream* out) {
   out->print   ("Virtual space:");
-  if (!should_commit()) out->print(" (pinned in memory)");
+  if (pinned()) out->print(" (pinned in memory)");
   out->cr();
   out->print_cr(" - committed: " SIZE_FORMAT, committed_size());
   out->print_cr(" - reserved:  " SIZE_FORMAT, reserved_size());
@@ -1299,7 +1299,7 @@ class TestVirtualSpace : AllStatic {
 
     vs.expand_by(commit_size, false);
 
-    if (!vs.should_commit()) {
+    if (vs.pinned()) {
       assert_equals(vs.actual_committed_size(), reserve_size_aligned);
     } else {
       assert_ge(vs.actual_committed_size(), commit_size);
