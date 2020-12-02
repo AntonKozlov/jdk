@@ -849,6 +849,16 @@ static bool commit_expanded(char* start, size_t size, size_t alignment, bool pre
   return false;
 }
 
+static bool uncommit_shrinked(char* start, size_t size, bool executable) {
+  bool uncommitted = executable ?
+    os::uncommit_executable_memory(start, size) :
+    os::uncommit_memory(start, size);
+  if (!uncommitted) {
+    debug_only(warning("os::uncommit_memory failed"));
+  }
+  return uncommitted;
+}
+
 /*
    First we need to determine if a particular virtual space is using large
    pages.  This is done at the initialize function and only virtual spaces
@@ -1011,8 +1021,7 @@ void VirtualSpace::shrink_by(size_t size) {
     assert(middle_high_boundary() <= aligned_upper_new_high &&
            aligned_upper_new_high + upper_needs <= upper_high_boundary(),
            "must not shrink beyond region");
-    if (!os::uncommit_memory(aligned_upper_new_high, upper_needs)) {
-      debug_only(warning("os::uncommit_memory failed"));
+    if (!uncommit_shrinked(aligned_upper_new_high, upper_needs)) {
       return;
     } else {
       _upper_high -= upper_needs;
@@ -1022,8 +1031,7 @@ void VirtualSpace::shrink_by(size_t size) {
     assert(lower_high_boundary() <= aligned_middle_new_high &&
            aligned_middle_new_high + middle_needs <= middle_high_boundary(),
            "must not shrink beyond region");
-    if (!os::uncommit_memory(aligned_middle_new_high, middle_needs)) {
-      debug_only(warning("os::uncommit_memory failed"));
+    if (!uncommit_shrinked(aligned_middle_new_high, middle_needs)) {
       return;
     } else {
       _middle_high -= middle_needs;
@@ -1033,8 +1041,7 @@ void VirtualSpace::shrink_by(size_t size) {
     assert(low_boundary() <= aligned_lower_new_high &&
            aligned_lower_new_high + lower_needs <= lower_high_boundary(),
            "must not shrink beyond region");
-    if (!os::uncommit_memory(aligned_lower_new_high, lower_needs)) {
-      debug_only(warning("os::uncommit_memory failed"));
+    if (!uncommit_shrinked(aligned_lower_new_high, lower_needs)) {
       return;
     } else {
       _lower_high -= lower_needs;
