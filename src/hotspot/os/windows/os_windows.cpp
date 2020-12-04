@@ -3267,7 +3267,8 @@ static char* map_or_reserve_memory_aligned(size_t size, size_t alignment, int fi
   return aligned_base;
 }
 
-char* os::reserve_memory_aligned(size_t size, size_t alignment) {
+char* os::reserve_memory_aligned(size_t size, size_t alignment, bool executable) {
+  // executable can be ignored
   return map_or_reserve_memory_aligned(size, alignment, -1 /* file_desc */);
 }
 

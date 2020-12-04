@@ -318,10 +318,12 @@ class os: AllStatic {
   static char*  reserve_memory(size_t bytes, bool executable = false, MEMFLAGS flags = mtOther);
 
   // Reserves virtual memory that starts at an address that is aligned to 'alignment'.
-  static char*  reserve_memory_aligned(size_t size, size_t alignment);
+  static char*  reserve_memory_aligned(size_t size, size_t alignment, bool executable = false);
 
   // Attempts to reserve the virtual memory at [addr, addr + bytes).
   // Does not overwrite existing mappings.
+  // It's intentionally cannot reserve executable mapping, as some platforms does not allow that
+  // (e.g. macOS with proper MAP_JIT use).
   static char*  attempt_reserve_memory_at(char* addr, size_t bytes);
 
   // Split a reserved memory region [base, base+size) into two regions [base, base+split) and
