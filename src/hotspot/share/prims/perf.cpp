@@ -110,7 +110,6 @@ PERF_ENTRY(void, Perf_Detach(JNIEnv *env, jobject unused, jobject buffer))
 
   // get buffer address and capacity
   {
-   MACOS_AARCH64_ONLY(ThreadWXEnable wx(WXExec, thread));
    ThreadToNativeFromVM ttnfv(thread);
    address = env->GetDirectBufferAddress(buffer);
    capacity = env->GetDirectBufferCapacity(buffer);
