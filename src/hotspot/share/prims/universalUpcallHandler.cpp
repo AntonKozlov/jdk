@@ -36,7 +36,6 @@ extern struct JavaVM_ main_vm;
 
 void ProgrammableUpcallHandler::upcall_helper(JavaThread* thread, jobject rec, address buff) {
   JavaThread* THREAD = thread;
-  MACOS_AARCH64_ONLY(ThreadWXEnable wx(WXWrite, thread));
   ThreadInVMfromNative tiv(THREAD);
   const UpcallMethod& upcall_method = instance().upcall_method;
 
@@ -61,6 +60,7 @@ void ProgrammableUpcallHandler::attach_thread_and_do_upcall(jobject rec, address
     should_detach = true;
     thread = Thread::current();
   }
+  MACOS_AARCH64_ONLY(ThreadWXEnable wx(WXWrite, thread));
 
   upcall_helper(thread->as_Java_thread(), rec, buff);
 
