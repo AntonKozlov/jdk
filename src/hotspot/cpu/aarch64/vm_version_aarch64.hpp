@@ -136,6 +136,11 @@ public:
   constexpr static bool supports_stack_watermark_barrier() { return true; }
 
   static void get_compatible_board(char *buf, int buflen);
+
+#ifdef __APPLE__
+  // This is just to be on par with bsd_x86, see 8261397 and 8261966
+  static bool is_cpu_emulated() { return false; }
+#endif
 };
 
 #endif // CPU_AARCH64_VM_VERSION_AARCH64_HPP
